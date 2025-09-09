@@ -1,37 +1,37 @@
-version: '3.9'
-
 services:
-
-#  etracker:
-#    build:
-#      context: .
-#      dockerfile: Dockerfile
-#    depends_on:
-#      - postgres
-#    ports:
-#      - 8080:8080
-#    networks:
-#      - expense-tracker-service-net
-
   postgres:
-    image: postgres
+    image: postgres:16
     restart: always
-    ports:
-      - 5432:5432
-    volumes:
-      - .:/docker-entrypoint-initdb.d/
     environment:
-      POSTGRES_PASSWORD: password
-    networks:
-      - expense-tracker-service-net
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
 
   adminer:
     image: adminer
     restart: always
     ports:
-      - 8085:8080
-    networks:
-      - expense-tracker-service-net
+      - "8088:8080"
+    depends_on:
+      - postgres
 
-networks:
-  expense-tracker-service-net:
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_SECURITY_USER_NAME: ${API_USER}
+      SPRING_SECURITY_USER_PASSWORD: ${API_PASS}
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:
